@@ -1,0 +1,84 @@
+/* Stiluri Globale și Utilitare */
+:root {
+  --primary-color: #1173d4;
+}
+
+body,
+html {
+  height: 100%;
+  min-height: 100dvh;
+  font-family: Inter, sans-serif;
+}
+
+.tap-highlight-transparent {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Animații pentru ferestrele Pop-up (Modals) */
+.animate-slide-down {
+  animation: slide-down 0.3s ease-out forwards;
+}
+.animate-slide-up {
+  animation: slide-up 0.3s ease-in forwards;
+}
+@keyframes slide-down {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+@keyframes slide-up {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+/* Animații pentru bara de căutare */
+#search-bar-container.active {
+  width: 100%;
+  opacity: 1;
+}
+#search-results.visible {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+}
+
+/* Stiluri pentru galeria Swiper */
+.swiper-pagination {
+    position: absolute;
+    bottom: 10px !important;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+}
+.swiper-pagination-bullet {
+    background-color: rgba(255, 255, 255, 0.5);
+    opacity: 1;
+    width: 8px;
+    height: 8px;
+}
+.swiper-pagination-bullet-active {
+    background-color: white;
+}
+.swiper-slide {
+    background-size: cover;
+    background-position: center;
+}
+
+/* Previne gestul de zoom-la-dublu-tap pe controale cu tap-uri rapide */
+.control-btn,
+.print-one-btn,
+.lightbox-nav-btn {
+    touch-action: manipulation;
+}
+

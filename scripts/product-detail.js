@@ -173,7 +173,7 @@ const handleAddNote = async () => {
     renderNotes();
     input.value = '';
 
-    const ok = await addProductNote(currentCommandId, currentProduct.id, note.id, text);
+    const ok = await addProductNote(currentCommandId, currentProduct.id, currentProduct.manifestsku, note.id, text);
 
     if (ok) {
         note.pending = false;
@@ -195,7 +195,7 @@ const handleDeleteNote = async (noteId) => {
     renderNotes();
 
     if (!currentProduct?.id) return;
-    const ok = await deleteProductNote(currentCommandId, currentProduct.id, noteId);
+    const ok = await deleteProductNote(currentCommandId, currentProduct.id, currentProduct.manifestsku, noteId);
 
     if (ok) {
         persistCurrentNotes();

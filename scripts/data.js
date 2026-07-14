@@ -166,12 +166,14 @@ export async function fetchProductDetailsInBulk(asins) {
     return results;
 }
 
-export async function addProductNote(commandId, productSku, id, note) {
+export async function addProductNote(commandId, productSku, manifestSku, id, note) {
     try {
         const response = await fetch(NOTES_UPDATE_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ commandId, productSku, id, note })
+            // manifestsku scopează notița pe produsul din paletul corect (același productsku poate
+            // exista pe paleti diferiti). Vezi funcția Postgres manifests.add_product_note.
+            body: JSON.stringify({ commandId, productSku, manifestsku: manifestSku ?? null, id, note })
         });
         if (!response.ok) throw new Error(`Eroare HTTP: ${response.status}`);
         return true;
@@ -181,12 +183,12 @@ export async function addProductNote(commandId, productSku, id, note) {
     }
 }
 
-export async function deleteProductNote(commandId, productSku, noteId) {
+export async function deleteProductNote(commandId, productSku, manifestSku, noteId) {
     try {
         const response = await fetch(NOTES_UPDATE_URL, {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ commandId, productSku, noteId })
+            body: JSON.stringify({ commandId, productSku, manifestsku: manifestSku ?? null, noteId })
         });
         if (!response.ok) throw new Error(`Eroare HTTP: ${response.status}`);
         return true;

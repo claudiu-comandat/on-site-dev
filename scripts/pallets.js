@@ -39,11 +39,16 @@ export async function initPalletsPage() {
         .filter(Boolean); // Filtrează ASIN-urile nule sau goale
 
     const allProductDetails = await fetchProductDetailsInBulk(asinsToFetch);
-    
+
     container.innerHTML = '';
 
+    // 2.5 Sortează paleții după cantitatea verificată (suma 'found' = cantitate efectivă, nu procent).
+    //     Crescător => paletul cu cele mai multe produse deja verificate ajunge jos.
+    const totalFoundOf = products => products.reduce((sum, p) => sum + Number(p.found), 0);
+    const sortedPallets = [...pallets.entries()].sort((a, b) => totalFoundOf(a[1]) - totalFoundOf(b[1]));
+
     // 3. Afișează fiecare palet
-    for (const [manifestSku, products] of pallets.entries()) {
+    for (const [manifestSku, products] of sortedPallets) {
         
         // Calculează totalurile pentru progres
         const totalExpected = products.reduce((sum, p) => sum + Number(p.expected), 0);

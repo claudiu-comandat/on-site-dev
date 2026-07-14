@@ -159,7 +159,7 @@ async function generateLabelPackets(productCode, conditionLabel) {
     canvas.height = labelWidth;
     const ctx = canvas.getContext('2d');
     
-    ctx.fillStyle = 'black';
+    ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.save();
     ctx.translate(canvas.width / 2, canvas.height / 2);
@@ -180,7 +180,7 @@ async function generateLabelPackets(productCode, conditionLabel) {
     const qrSize = 85; 
     ctx.drawImage(qrImg, -labelWidth / 2 + 15, -labelHeight / 2 + 18 + verticalOffset, qrSize, qrSize);
     
-    ctx.fillStyle = 'white';
+    ctx.fillStyle = 'black';
     ctx.font = 'bold 24px Arial';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
@@ -199,7 +199,9 @@ async function generateLabelPackets(productCode, conditionLabel) {
         let lineBytes = new Uint8Array(widthInBytes);
         for (let x = 0; x < canvas.width; x++) {
             const pixelIndex = (y * canvas.width + x) * 4;
-            const pixelValue = imageData.data[pixelIndex] > 128 ? 1 : 0;
+            // bit 1 = punct printat (negru pe etichetă). Printăm pixelii ÎNCHIȘI, ca eticheta
+            // să iasă normală: fundal alb, iar QR-ul + textul negre (nu inversate).
+            const pixelValue = imageData.data[pixelIndex] < 128 ? 1 : 0;
             if (pixelValue === 1) {
                 lineBytes[Math.floor(x / 8)] |= (1 << (7 - (x % 8)));
             }

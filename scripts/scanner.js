@@ -57,7 +57,28 @@ async function findProductSkuInManifest(manifestUrl, scannedCode) {
 async function onScanSuccess(decodedText, decodedResult) {
     stopScanner();
     showToast('Cod scanat. Se caută produsul...');
+    const scannerKind = decodedResult ? 'camera' : 'hw';
     try {
+        // 1) Potrivire directă: codul scanat (LPN) ESTE chiar manifestsku-ul rândului în DB.
+        //    Importul automat Jobalots pune LPN-ul unic per unitate în coloana manifestsku, iar
+        //    productsku e de-duplicat cu sufixe -1/-2. Deci fiecare LPN duce la rândul LUI, chiar
+        //    dacă 3 unități au același ASIN și același productsku de bază. Fără apel la rețea.
+        const scanned = String(decodedText).trim().toUpperCase();
+        for (const command of AppState.getCommands()) {
+            const row = command.products.find(p => String(p.manifestsku || '').trim().toUpperCase() === scanned);
+            if (row) {
+                sessionStorage.setItem('currentCommandId', command.id);
+                sessionStorage.setItem('currentProductId', row.id);
+                sessionStorage.setItem('currentManifestSku', row.manifestsku || 'No ManifestSKU');
+                track('scan_matched', { scanner_kind: scannerKind, lpn: decodedText, match: 'manifestsku' });
+                showToast('Produs găsit! Se deschide...');
+                router.navigateTo('product-detail');
+                return;
+            }
+        }
+
+        // 2) Fallback: codul nu e un manifestsku cunoscut în comenzile încărcate. Întrebăm Jobalots
+        //    ca să obținem productsku-ul de bază din manifest, apoi căutăm după el (fără să ghicim paletul).
         let response;
         try {
             response = await fetch(JOBALOTS_MANIFEST_URL, {
@@ -100,16 +121,14 @@ async function onScanSuccess(decodedText, decodedResult) {
         }
 
         const productSku = await findProductSkuInManifest(responseData.result.manifest_url, decodedText);
-        const allCommands = AppState.getCommands();
-        const currentManifestSku = sessionStorage.getItem('currentManifestSku');
         let foundProduct = null;
         let foundCommandId = null;
         let ambiguous = false;
 
-        // Același productsku poate apărea în mai multe paleti (același ASIN, paleti diferiti) -
-        // vezi resolveProductInCommand în data.js. Dacă e ambiguu, nu ghicim paletul.
-        for (const command of allCommands) {
-            const result = resolveProductInCommand(command, productSku, currentManifestSku);
+        // Nu ghicim paletul din sesiune (manifestSku = null): dacă productsku-ul de bază e ambiguu,
+        // spunem utilizatorului, nu-l trimitem la un palet greșit.
+        for (const command of AppState.getCommands()) {
+            const result = resolveProductInCommand(command, productSku, null);
             if (result.product) {
                 foundProduct = result.product;
                 foundCommandId = command.id;
@@ -125,19 +144,19 @@ async function onScanSuccess(decodedText, decodedResult) {
             sessionStorage.setItem('currentCommandId', foundCommandId);
             sessionStorage.setItem('currentProductId', foundProduct.id);
             sessionStorage.setItem('currentManifestSku', foundProduct.manifestsku || 'No ManifestSKU');
-            track('scan_matched', { scanner_kind: decodedResult ? 'camera' : 'hw', lpn: decodedText });
+            track('scan_matched', { scanner_kind: scannerKind, lpn: decodedText, match: 'productsku' });
             showToast('Produs găsit! Se deschide...');
             router.navigateTo('product-detail');
         } else if (ambiguous) {
-            track('scan_ambiguous_sku', { scanner_kind: decodedResult ? 'camera' : 'hw', lpn: decodedText, raw_api_sku: productSku });
+            track('scan_ambiguous_sku', { scanner_kind: scannerKind, lpn: decodedText, raw_api_sku: productSku });
             showToast('Acest produs există în mai mulți paleti. Deschide paletul corect din listă și scanează din pagina lui.', 6000);
         } else {
-            track('scan_found_not_in_orders', { scanner_kind: decodedResult ? 'camera' : 'hw', lpn: decodedText, raw_api_sku: productSku });
+            track('scan_found_not_in_orders', { scanner_kind: scannerKind, lpn: decodedText, raw_api_sku: productSku });
             showToast(`Produsul (SKU: ...${productSku.slice(-6)}) nu e în comenzile curente.`, 5000);
             console.error('Produsul (SKU: ' + productSku + ') a fost găsit în API, dar nu există în comenzile încărcate în AppState.');
         }
     } catch (error) {
-        track('scan_failed', { scanner_kind: decodedResult ? 'camera' : 'hw', lpn: decodedText, error_message: error.message });
+        track('scan_failed', { scanner_kind: scannerKind, lpn: decodedText, error_message: error.message });
         console.error('Eroare la procesarea LPN:', error);
         showToast(error.message, 5000);
     }
